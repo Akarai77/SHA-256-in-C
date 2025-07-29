@@ -153,8 +153,7 @@ char* getMsg() {
     return input;
 }
 
-int main() {
-    char* msg = getMsg();
+int SHA256(const char* msg,char* hashOutput) {
 
     int msgLen = strlen(msg);
     uint8_t* binary = malloc(msgLen * sizeof(uint8_t));
@@ -193,8 +192,8 @@ int main() {
     getBlocks(blocks,noOfBlocks,paddedBinaryMsg,paddedMsgLen);
     free(paddedBinaryMsg);
 
-    char* hashedMsg = hash(blocks,noOfBlocks);
-    printf("Hashed Message : %s", hashedMsg);
+     char* hashedMsg = hash(blocks,noOfBlocks);
+     strcpy(hashOutput, hashedMsg);
 
     for(size_t i=0; i<noOfBlocks; i++) {
         free(blocks[i]);
