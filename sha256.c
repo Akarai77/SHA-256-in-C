@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "sha256.h"
 
 void padMsg(uint8_t* paddedBinaryMsg,const uint8_t* binary,int len,int padLen) {
     memcpy(paddedBinaryMsg,binary,len*sizeof(uint8_t));
@@ -19,17 +20,18 @@ void intToBin(uint8_t* paddedBinaryMsg, int offset, uint64_t len) {
     }
 }
 
-void getBlocks(uint8_t** blocks,int noOfBlocks,uint8_t* binMsg,int msgLen) {
+int getBlocks(uint8_t** blocks,int noOfBlocks,uint8_t* binMsg,int msgLen) {
     for(int i = 0;i < noOfBlocks; i++) {
         blocks[i] = malloc(64 * sizeof(uint8_t));
         if(blocks[i] == NULL) {
             fprintf(stderr, "Memory allocation failed\n");
             free(binMsg);
-            exit(0);
+            return 1;
         }
 
         memcpy(blocks[i],binMsg + 64*i, 64*sizeof(uint8_t));
     }
+    return 0;
 }
 
 uint32_t rightRotate(const uint32_t word,int offset) {
@@ -132,34 +134,13 @@ char* hash (uint8_t** blocks,int noOfBlocks) {
     return hashedMsg;
 }
 
-char* getMsg() {
-    int ch;
-    size_t size = 0;
-    char* input = NULL;
-
-    printf("Enter the message : ");
-    while ((ch = getchar()) != '\n' && ch != EOF) {
-        char *temp = realloc(input, size + 2);
-        if (!temp) {
-            free(input);
-            fprintf(stderr, "Memory allocation failed\n");
-            exit(1);
-        }
-        input = temp;
-        input[size++] = ch;
-    }
-    input[size] = '\0';
-
-    return input;
-}
-
 int SHA256(const char* msg,char* hashOutput) {
 
     int msgLen = strlen(msg);
     uint8_t* binary = malloc(msgLen * sizeof(uint8_t));
     if (binary == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
-        exit(0);
+        return 1;
     }
     memcpy(binary, msg, msgLen);
 
@@ -175,7 +156,7 @@ int SHA256(const char* msg,char* hashOutput) {
     if(paddedBinaryMsg == NULL) {
         fprintf(stderr,"Memory allocation failed");
         free(binary);
-        exit(1);
+        return 1;
     }
 
     padMsg(paddedBinaryMsg,binary,msgLen,padLen);
@@ -187,9 +168,14 @@ int SHA256(const char* msg,char* hashOutput) {
     if(blocks == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
         free(paddedBinaryMsg);
-        exit(0);
+        return 1;
     }
-    getBlocks(blocks,noOfBlocks,paddedBinaryMsg,paddedMsgLen);
+    int status = getBlocks(blocks,noOfBlocks,paddedBinaryMsg,paddedMsgLen);
+    if(status != 0) {
+        fprintf(stderr, "Failed to create blocks.");
+        free(paddedBinaryMsg);
+        return 1;
+    }
     free(paddedBinaryMsg);
 
      char* hashedMsg = hash(blocks,noOfBlocks);
